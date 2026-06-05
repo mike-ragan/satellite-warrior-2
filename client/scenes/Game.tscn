@@ -1,0 +1,79 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Game.gd" id="1"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="VBox" type="VBoxContainer" parent="UI"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 1270.0
+offset_bottom = 710.0
+
+[node name="PhaseLabel" type="Label" parent="UI/VBox"]
+text = "Phase: ..."
+theme_override_font_sizes/font_size = 24
+
+[node name="TurnLabel" type="Label" parent="UI/VBox"]
+text = "Turn 0"
+
+[node name="Sep1" type="HSeparator" parent="UI/VBox"]
+
+[node name="HBox" type="HBoxContainer" parent="UI/VBox"]
+size_flags_vertical = 3
+
+[node name="Left" type="VBoxContainer" parent="UI/VBox/HBox"]
+size_flags_horizontal = 3
+
+[node name="PlayerLabel" type="Label" parent="UI/VBox/HBox/Left"]
+text = "Loading..."
+autowrap_mode = 3
+
+[node name="Mid" type="VBoxContainer" parent="UI/VBox/HBox"]
+size_flags_horizontal = 3
+
+[node name="MoonsLabel" type="Label" parent="UI/VBox/HBox/Mid"]
+text = "MOONS:"
+autowrap_mode = 3
+
+[node name="Right" type="VBoxContainer" parent="UI/VBox/HBox"]
+size_flags_horizontal = 3
+
+[node name="AlienLabel" type="Label" parent="UI/VBox/HBox/Right"]
+text = "ALIEN MARKET"
+autowrap_mode = 3
+
+[node name="CompInput" type="LineEdit" parent="UI/VBox/HBox/Right"]
+placeholder_text = "component (e.g. toroid)"
+
+[node name="QtyInput" type="SpinBox" parent="UI/VBox/HBox/Right"]
+min_value = 1.0
+max_value = 7.0
+value = 1.0
+
+[node name="BuyBtn" type="Button" parent="UI/VBox/HBox/Right"]
+text = "Buy"
+
+[node name="Sep2" type="HSeparator" parent="UI/VBox/HBox/Right"]
+
+[node name="SatInput" type="LineEdit" parent="UI/VBox/HBox/Right"]
+placeholder_text = "satellite id"
+
+[node name="MoonInput" type="LineEdit" parent="UI/VBox/HBox/Right"]
+placeholder_text = "moon id (e.g. m0)"
+
+[node name="DeployBtn" type="Button" parent="UI/VBox/HBox/Right"]
+text = "Deploy"
+
+[node name="Sep3" type="HSeparator" parent="UI/VBox"]
+
+[node name="ReadyBtn" type="Button" parent="UI/VBox"]
+text = "Ready / Next Phase"
+theme_override_font_sizes/font_size = 20
+
+[node name="StatusLabel" type="Label" parent="UI/VBox"]
+text = ""
+autowrap_mode = 3

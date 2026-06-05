@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.env
+*.egg-info/
+
+# Godot
+.godot/
+*.import
+export.cfg
+export_presets.cfg
+*.translation
+*.uid
+builds/
+
+# OS
+.DS_Store
+Thumbs.db
