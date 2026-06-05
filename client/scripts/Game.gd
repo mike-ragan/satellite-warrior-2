@@ -1,8 +1,8 @@
 extends Node2D
 
 const COMP_COLORS := {
-	"head":       Color(0.70, 0.70, 0.75),
-	"toroid":     Color(0.70, 0.70, 0.75),
+	"head":       Color(0.65, 0.65, 0.70),
+	"toroid":     Color(0.65, 0.65, 0.70),
 	"grabber":    Color(1.00, 0.55, 0.00),
 	"missile":    Color(1.00, 0.55, 0.00),
 	"plasma_gun": Color(1.00, 0.55, 0.00),
@@ -17,7 +17,6 @@ var _setup_done := false
 
 # Top bar
 @onready var phase_label:  Label = $UI/TopBar/PhaseLabel
-@onready var turn_label:   Label = $UI/TopBar/TurnLabel
 @onready var player_info:  Label = $UI/TopBar/PlayerInfo
 @onready var ai_info:      Label = $UI/TopBar/AIInfo
 
@@ -51,6 +50,9 @@ var _comp_btns:   Array = []
 # Bottom
 @onready var status_label: Label = $UI/StatusLabel
 
+# Planet
+@onready var planet_poly: Polygon2D = $MoonMap/Planet
+
 # Moons
 var _moons: Dictionary = {}  # moon_id -> Moon node
 
@@ -58,12 +60,17 @@ var _moons: Dictionary = {}  # moon_id -> Moon node
 func _ready() -> void:
 	_my_id = GameClient.player_id
 
+	# Generate planet circle
+	var pts := PackedVector2Array()
+	for i in 64:
+		pts.append(Vector2(cos(i * TAU / 64.0), sin(i * TAU / 64.0)) * 115.0)
+	planet_poly.polygon = pts
+
 	GameClient.state_updated.connect(_on_state)
 	GameClient.error_received.connect(func(m: String) -> void:
 		status_label.text = m
 	)
 
-	# Cache the three component rows
 	for i in 3:
 		var base := "UI/ActionPanel/TradingPanel/"
 		var row   := get_node(base + "CompRow%d" % i) as HBoxContainer
@@ -83,7 +90,6 @@ func _ready() -> void:
 		get_tree().change_scene_to_file("res://scenes/Lobby.tscn")
 	)
 
-	# Cache moon nodes and connect signals
 	for mid in ["m0", "m1", "m2", "m3", "m4"]:
 		var moon_node = $MoonMap.get_node("Moon_" + mid)
 		_moons[mid] = moon_node
@@ -110,12 +116,7 @@ func _setup_moons(state: Dictionary) -> void:
 
 func _refresh(state: Dictionary) -> void:
 	var phase:   String     = state.get("phase", "waiting")
-	var turn:    int        = state.get("turn_number", 0)
 	var players: Dictionary = state.get("players", {})
-
-	# ---- Top bar ----
-	phase_label.text = phase.replace("_", " ").to_upper()
-	turn_label.text  = "Turn %d" % turn
 
 	var me: Dictionary = players.get(_my_id, {})
 	var ai: Dictionary = {}
@@ -123,16 +124,15 @@ func _refresh(state: Dictionary) -> void:
 		if pid != _my_id:
 			ai = players[pid]
 
-	player_info.text = "%s   $%d" % [me.get("name", "?"), me.get("cash", 0)]
-	ai_info.text     = "%s   $%d" % [ai.get("name", "?"), ai.get("cash", 0)]
+	player_info.text = "CREDIT+%04d\n%s" % [me.get("cash", 0), me.get("name", "?").to_upper()]
+	ai_info.text     = "%s\nCREDIT+%04d" % [ai.get("name", "?").to_upper(), ai.get("cash", 0)]
+	phase_label.text = phase.replace("_", " ").to_upper()
 
-	# ---- Moons ----
 	for moon_data in state.get("moons", []):
 		var moon_node = _moons.get(moon_data["id"])
 		if moon_node:
 			moon_node.refresh(moon_data, players)
 
-	# ---- Phase panels ----
 	trading_panel.visible  = phase == "trading"
 	deploy_panel.visible   = phase == "deployment"
 	combat_panel.visible   = phase == "combat"
@@ -147,18 +147,18 @@ func _refresh(state: Dictionary) -> void:
 		"trading":    _refresh_trading(state, me)
 		"deployment": _refresh_deploy(me)
 		"combat":     _refresh_combat(state)
-		"game_over":  winner_label.text = "%s Wins!" % state.get("winner", "?")
+		"game_over":  winner_label.text = "%s\nWINS!" % state.get("winner", "?").to_upper()
 
 
 func _refresh_trading(state: Dictionary, me: Dictionary) -> void:
 	var offer: Variant = state.get("alien_offer")
 	if not offer is Dictionary:
-		alien_label.text = "No alien this turn"
+		alien_label.text = "NO ALIEN THIS TURN"
 		for i in 3:
 			_comp_rows[i].visible = false
 		return
 
-	var atype: String  = offer.get("alien_type", "?").to_upper()
+	var atype: String = offer.get("alien_type", "?").to_upper()
 	alien_label.text = "%s DEALER" % atype
 
 	var comps:  Array      = offer.get("components", [])
@@ -169,7 +169,7 @@ func _refresh_trading(state: Dictionary, me: Dictionary) -> void:
 			var comp: String = comps[i]
 			_comp_rows[i].visible   = true
 			_comp_icons[i].color    = COMP_COLORS.get(comp, Color.WHITE)
-			_comp_names[i].text     = comp.replace("_", " ")
+			_comp_names[i].text     = comp.replace("_", " ").to_upper()
 			_comp_prices[i].text    = "$%d" % int(prices.get(comp, 0))
 		else:
 			_comp_rows[i].visible = false
@@ -179,23 +179,23 @@ func _refresh_trading(state: Dictionary, me: Dictionary) -> void:
 
 func _refresh_deploy(me: Dictionary) -> void:
 	if _has_deployable_sat(me):
-		deploy_info.text = "Click a moon to deploy\nyour satellite."
+		deploy_info.text = "CLICK A MOON TO DEPLOY\nYOUR SATELLITE."
 	else:
-		deploy_info.text = "Buy a TOROID to give\nyour satellite mobility."
+		deploy_info.text = "BUY A TOROID TO GIVE\nYOUR SATELLITE MOBILITY."
 	sat_status.text = _sat_summary(me)
 
 
 func _refresh_combat(state: Dictionary) -> void:
 	var log: Array = state.get("combat_log", [])
 	if log.is_empty():
-		combat_info.text = "No battles this turn."
+		combat_info.text = "NO BATTLES THIS TURN."
 		return
 	var text := ""
 	for entry in log:
-		var winner_name := _name_of(entry.get("winner_id", ""), state)
-		var moon_name   := _moon_name(entry.get("moon_id", ""), state)
-		var rounds      := entry.get("rounds", [])
-		text += "%s\n  Winner: %s  (%d rounds)\n\n" % [moon_name, winner_name, rounds.size()]
+		var winner_name := _name_of(entry.get("winner_id", ""), state).to_upper()
+		var moon_name   := _moon_name(entry.get("moon_id", ""), state).to_upper()
+		var rounds: Array = entry.get("rounds", [])
+		text += "%s\n  WINNER: %s  (%d ROUNDS)\n\n" % [moon_name, winner_name, rounds.size()]
 	combat_info.text = text.strip_edges()
 
 
@@ -213,7 +213,6 @@ func _on_moon_clicked(moon_id: String) -> void:
 	var sats: Array      = me.get("satellites", [])
 	if sats.is_empty():
 		return
-	# Prefer a sat in reserve; fall back to the first one
 	var sat_id := ""
 	for sat in sats:
 		if not sat.get("moon_id"):
@@ -224,13 +223,11 @@ func _on_moon_clicked(moon_id: String) -> void:
 	GameClient.send({"type": "deploy", "satellite_id": sat_id, "moon_id": moon_id})
 
 
-# ---- helpers ----
-
 func _has_deployable_sat(me: Dictionary) -> bool:
 	for sat in me.get("satellites", []):
 		if "toroid" in sat.get("components", []):
 			return true
-		if sat.get("moon_id"):  # already deployed — can be redirected
+		if sat.get("moon_id"):
 			return true
 	return false
 
@@ -238,14 +235,14 @@ func _has_deployable_sat(me: Dictionary) -> bool:
 func _sat_summary(me: Dictionary) -> String:
 	var lines := ""
 	for sat in me.get("satellites", []):
-		var loc: String = sat.get("moon_id") if sat.get("moon_id") else "reserve"
+		var loc: String = sat.get("moon_id") if sat.get("moon_id") else "RESERVE"
 		var comps: Array = sat.get("components", [])
 		var hp: int      = sat.get("stability", 100)
-		lines += "[%s]  %s  HP:%d\n%s\n\n" % [
-			sat.get("id", "?").substr(0, 4), loc, hp,
-			", ".join(PackedStringArray(comps))
+		lines += "[%s] %s  HP:%d\n%s\n\n" % [
+			sat.get("id", "?").substr(0, 4).to_upper(), loc.to_upper(), hp,
+			", ".join(PackedStringArray(comps)).to_upper()
 		]
-	return lines.strip_edges() if lines else "No satellites"
+	return lines.strip_edges() if lines else "NO SATELLITES"
 
 
 func _name_of(pid: String, state: Dictionary) -> String:

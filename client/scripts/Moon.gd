@@ -3,11 +3,11 @@ extends Area2D
 signal moon_clicked(moon_id: String)
 
 const RADIUS          := 45.0
-const COLOR_UNCLAIMED := Color(0.35, 0.35, 0.42)
-const COLOR_PLAYER    := Color(0.20, 0.45, 0.95)
-const COLOR_AI        := Color(0.90, 0.22, 0.22)
+const COLOR_UNCLAIMED := Color(0.68, 0.28, 0.04)
+const COLOR_PLAYER    := Color(0.12, 0.80, 0.18)
+const COLOR_AI        := Color(0.85, 0.10, 0.10)
 
-var moon_id: String   = ""
+var moon_id: String    = ""
 var _player_id: String = ""
 var _base_color        := COLOR_UNCLAIMED
 var _deployable        := false
@@ -24,9 +24,16 @@ func _ready() -> void:
 	for i in 48:
 		pts.append(Vector2(cos(i * TAU / 48.0), sin(i * TAU / 48.0)) * RADIUS)
 	body.polygon = pts
+
+	var cross := _make_cross(9.0)
+	player_sat.polygon = cross
+	ai_sat.polygon     = cross
+	player_sat.color   = Color(0.20, 1.00, 0.30)
+	ai_sat.color       = Color(1.00, 0.20, 0.20)
 	player_sat.visible = false
 	ai_sat.visible     = false
-	input_pickable     = true
+
+	input_pickable = true
 	mouse_entered.connect(_on_hover.bind(true))
 	mouse_exited.connect(_on_hover.bind(false))
 
@@ -34,7 +41,7 @@ func _ready() -> void:
 func setup(id: String, mname: String, resources: int, player_id: String) -> void:
 	moon_id    = id
 	_player_id = player_id
-	name_lbl.text = mname
+	name_lbl.text = mname.to_upper()
 	res_lbl.text  = str(resources)
 
 
@@ -65,7 +72,7 @@ func refresh(moon_data: Dictionary, players: Dictionary) -> void:
 
 func _on_hover(entering: bool) -> void:
 	if _deployable:
-		body.color = _base_color.lightened(0.3) if entering else _base_color
+		body.color = _base_color.lightened(0.35) if entering else _base_color
 
 
 func _input_event(_vp: Viewport, event: InputEvent, _idx: int) -> void:
@@ -74,3 +81,13 @@ func _input_event(_vp: Viewport, event: InputEvent, _idx: int) -> void:
 			and event.button_index == MOUSE_BUTTON_LEFT \
 			and _deployable:
 		moon_clicked.emit(moon_id)
+
+
+func _make_cross(s: float) -> PackedVector2Array:
+	var t := s / 3.0
+	return PackedVector2Array([
+		Vector2(-t, -s), Vector2(t, -s), Vector2(t, -t),
+		Vector2(s, -t),  Vector2(s, t),  Vector2(t, t),
+		Vector2(t, s),   Vector2(-t, s), Vector2(-t, t),
+		Vector2(-s, t),  Vector2(-s, -t), Vector2(-t, -t),
+	])

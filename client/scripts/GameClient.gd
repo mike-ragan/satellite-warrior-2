@@ -15,6 +15,71 @@ var _ws := WebSocketPeer.new()
 var _ws_active := false
 
 
+func _ready() -> void:
+	_setup_theme()
+
+
+func _setup_theme() -> void:
+	var theme := Theme.new()
+
+	var GREEN       := Color(0.10, 0.92, 0.18)
+	var GREEN_HOVER := Color(0.45, 1.00, 0.45)
+	var DARK_RED    := Color(0.28, 0.01, 0.01)
+	var MED_RED     := Color(0.42, 0.02, 0.02)
+	var BRIGHT_RED  := Color(0.55, 0.05, 0.05)
+
+	var panel := StyleBoxFlat.new()
+	panel.bg_color = DARK_RED
+	panel.set_border_width_all(2)
+	panel.border_color = GREEN
+	theme.set_stylebox("panel", "Panel", panel)
+
+	var btn_n := StyleBoxFlat.new()
+	btn_n.bg_color = Color(0.14, 0.00, 0.00)
+	btn_n.set_border_width_all(1)
+	btn_n.border_color = GREEN
+	var btn_h := StyleBoxFlat.new()
+	btn_h.bg_color = MED_RED
+	btn_h.set_border_width_all(1)
+	btn_h.border_color = GREEN_HOVER
+	var btn_p := StyleBoxFlat.new()
+	btn_p.bg_color = BRIGHT_RED
+	btn_p.set_border_width_all(1)
+	btn_p.border_color = GREEN
+	var btn_f := StyleBoxFlat.new()
+	btn_f.draw_center = false
+	btn_f.set_border_width_all(1)
+	btn_f.border_color = Color(0.1, 0.9, 0.1, 0.4)
+	theme.set_stylebox("normal",  "Button", btn_n)
+	theme.set_stylebox("hover",   "Button", btn_h)
+	theme.set_stylebox("pressed", "Button", btn_p)
+	theme.set_stylebox("focus",   "Button", btn_f)
+	theme.set_color("font_color",          "Button", GREEN)
+	theme.set_color("font_hover_color",    "Button", GREEN_HOVER)
+	theme.set_color("font_pressed_color",  "Button", Color(1.0, 1.0, 0.2))
+	theme.set_color("font_disabled_color", "Button", Color(0.1, 0.4, 0.1))
+
+	theme.set_color("font_color", "Label", GREEN)
+
+	var le_n := StyleBoxFlat.new()
+	le_n.bg_color = Color(0.03, 0.03, 0.03)
+	le_n.set_border_width_all(1)
+	le_n.border_color = GREEN
+	var le_f := StyleBoxFlat.new()
+	le_f.bg_color = Color(0.06, 0.06, 0.06)
+	le_f.set_border_width_all(1)
+	le_f.border_color = GREEN_HOVER
+	theme.set_stylebox("normal", "LineEdit", le_n)
+	theme.set_stylebox("focus",  "LineEdit", le_f)
+	theme.set_color("font_color",      "LineEdit", GREEN)
+	theme.set_color("caret_color",     "LineEdit", GREEN)
+	theme.set_color("selection_color", "LineEdit", Color(0.1, 0.4, 0.1, 0.5))
+
+	theme.set_color("color", "HSeparator", Color(0.1, 0.9, 0.1, 0.35))
+
+	get_tree().root.theme = theme
+
+
 func create_game(player_name: String) -> void:
 	_post("/games", {"player_name": player_name}, _on_session_response)
 
