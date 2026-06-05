@@ -1,79 +1,223 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/Game.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/Moon.tscn" id="2"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1")
 
+[node name="MoonMap" type="Node2D" parent="."]
+position = Vector2(0, 60)
+
+[node name="Moon_m0" parent="MoonMap" instance=ExtResource("2")]
+position = Vector2(200, 200)
+
+[node name="Moon_m1" parent="MoonMap" instance=ExtResource("2")]
+position = Vector2(480, 140)
+
+[node name="Moon_m2" parent="MoonMap" instance=ExtResource("2")]
+position = Vector2(760, 200)
+
+[node name="Moon_m3" parent="MoonMap" instance=ExtResource("2")]
+position = Vector2(300, 430)
+
+[node name="Moon_m4" parent="MoonMap" instance=ExtResource("2")]
+position = Vector2(660, 430)
+
 [node name="UI" type="CanvasLayer" parent="."]
 
-[node name="VBox" type="VBoxContainer" parent="UI"]
+[node name="TopBar" type="Panel" parent="UI"]
+offset_right = 960.0
+offset_bottom = 60.0
+
+[node name="PhaseLabel" type="Label" parent="UI/TopBar"]
 offset_left = 10.0
-offset_top = 10.0
-offset_right = 1270.0
-offset_bottom = 710.0
+offset_top = 8.0
+offset_right = 360.0
+offset_bottom = 52.0
+theme_override_font_sizes/font_size = 20
+text = "PHASE"
 
-[node name="PhaseLabel" type="Label" parent="UI/VBox"]
-text = "Phase: ..."
-theme_override_font_sizes/font_size = 24
-
-[node name="TurnLabel" type="Label" parent="UI/VBox"]
+[node name="TurnLabel" type="Label" parent="UI/TopBar"]
+offset_left = 370.0
+offset_top = 8.0
+offset_right = 540.0
+offset_bottom = 52.0
 text = "Turn 0"
 
-[node name="Sep1" type="HSeparator" parent="UI/VBox"]
+[node name="PlayerInfo" type="Label" parent="UI/TopBar"]
+offset_left = 550.0
+offset_top = 8.0
+offset_right = 760.0
+offset_bottom = 52.0
+text = "You: —"
 
-[node name="HBox" type="HBoxContainer" parent="UI/VBox"]
-size_flags_vertical = 3
+[node name="AIInfo" type="Label" parent="UI/TopBar"]
+offset_left = 770.0
+offset_top = 8.0
+offset_right = 955.0
+offset_bottom = 52.0
+text = "AI: —"
+horizontal_alignment = 2
 
-[node name="Left" type="VBoxContainer" parent="UI/VBox/HBox"]
+[node name="ActionPanel" type="Panel" parent="UI"]
+offset_left = 960.0
+offset_right = 1280.0
+offset_bottom = 720.0
+
+[node name="ActionTitle" type="Label" parent="UI/ActionPanel"]
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 310.0
+offset_bottom = 44.0
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 16
+text = "ACTIONS"
+
+[node name="TradingPanel" type="VBoxContainer" parent="UI/ActionPanel"]
+offset_left = 10.0
+offset_top = 50.0
+offset_right = 310.0
+offset_bottom = 648.0
+
+[node name="AlienLabel" type="Label" parent="UI/ActionPanel/TradingPanel"]
+theme_override_font_sizes/font_size = 14
+text = "Alien visit"
+
+[node name="Sep1" type="HSeparator" parent="UI/ActionPanel/TradingPanel"]
+
+[node name="CompRow0" type="HBoxContainer" parent="UI/ActionPanel/TradingPanel"]
+custom_minimum_size = Vector2(0, 34)
+
+[node name="CompIcon0" type="ColorRect" parent="UI/ActionPanel/TradingPanel/CompRow0"]
+custom_minimum_size = Vector2(20, 20)
+color = Color(1, 0.6, 0, 1)
+
+[node name="CompName0" type="Label" parent="UI/ActionPanel/TradingPanel/CompRow0"]
 size_flags_horizontal = 3
+text = "grabber"
 
-[node name="PlayerLabel" type="Label" parent="UI/VBox/HBox/Left"]
-text = "Loading..."
-autowrap_mode = 3
+[node name="CompPrice0" type="Label" parent="UI/ActionPanel/TradingPanel/CompRow0"]
+custom_minimum_size = Vector2(52, 0)
+horizontal_alignment = 2
+text = "$75"
 
-[node name="Mid" type="VBoxContainer" parent="UI/VBox/HBox"]
-size_flags_horizontal = 3
-
-[node name="MoonsLabel" type="Label" parent="UI/VBox/HBox/Mid"]
-text = "MOONS:"
-autowrap_mode = 3
-
-[node name="Right" type="VBoxContainer" parent="UI/VBox/HBox"]
-size_flags_horizontal = 3
-
-[node name="AlienLabel" type="Label" parent="UI/VBox/HBox/Right"]
-text = "ALIEN MARKET"
-autowrap_mode = 3
-
-[node name="CompInput" type="LineEdit" parent="UI/VBox/HBox/Right"]
-placeholder_text = "component (e.g. toroid)"
-
-[node name="QtyInput" type="SpinBox" parent="UI/VBox/HBox/Right"]
-min_value = 1.0
-max_value = 7.0
-value = 1.0
-
-[node name="BuyBtn" type="Button" parent="UI/VBox/HBox/Right"]
+[node name="BuyBtn0" type="Button" parent="UI/ActionPanel/TradingPanel/CompRow0"]
+custom_minimum_size = Vector2(48, 0)
 text = "Buy"
 
-[node name="Sep2" type="HSeparator" parent="UI/VBox/HBox/Right"]
+[node name="CompRow1" type="HBoxContainer" parent="UI/ActionPanel/TradingPanel"]
+custom_minimum_size = Vector2(0, 34)
 
-[node name="SatInput" type="LineEdit" parent="UI/VBox/HBox/Right"]
-placeholder_text = "satellite id"
+[node name="CompIcon1" type="ColorRect" parent="UI/ActionPanel/TradingPanel/CompRow1"]
+custom_minimum_size = Vector2(20, 20)
+color = Color(1, 0.6, 0, 1)
 
-[node name="MoonInput" type="LineEdit" parent="UI/VBox/HBox/Right"]
-placeholder_text = "moon id (e.g. m0)"
+[node name="CompName1" type="Label" parent="UI/ActionPanel/TradingPanel/CompRow1"]
+size_flags_horizontal = 3
+text = "missile"
 
-[node name="DeployBtn" type="Button" parent="UI/VBox/HBox/Right"]
-text = "Deploy"
+[node name="CompPrice1" type="Label" parent="UI/ActionPanel/TradingPanel/CompRow1"]
+custom_minimum_size = Vector2(52, 0)
+horizontal_alignment = 2
+text = "$90"
 
-[node name="Sep3" type="HSeparator" parent="UI/VBox"]
+[node name="BuyBtn1" type="Button" parent="UI/ActionPanel/TradingPanel/CompRow1"]
+custom_minimum_size = Vector2(48, 0)
+text = "Buy"
 
-[node name="ReadyBtn" type="Button" parent="UI/VBox"]
-text = "Ready / Next Phase"
-theme_override_font_sizes/font_size = 20
+[node name="CompRow2" type="HBoxContainer" parent="UI/ActionPanel/TradingPanel"]
+custom_minimum_size = Vector2(0, 34)
 
-[node name="StatusLabel" type="Label" parent="UI/VBox"]
-text = ""
+[node name="CompIcon2" type="ColorRect" parent="UI/ActionPanel/TradingPanel/CompRow2"]
+custom_minimum_size = Vector2(20, 20)
+color = Color(1, 0.6, 0, 1)
+
+[node name="CompName2" type="Label" parent="UI/ActionPanel/TradingPanel/CompRow2"]
+size_flags_horizontal = 3
+text = "plasma_gun"
+
+[node name="CompPrice2" type="Label" parent="UI/ActionPanel/TradingPanel/CompRow2"]
+custom_minimum_size = Vector2(52, 0)
+horizontal_alignment = 2
+text = "$80"
+
+[node name="BuyBtn2" type="Button" parent="UI/ActionPanel/TradingPanel/CompRow2"]
+custom_minimum_size = Vector2(48, 0)
+text = "Buy"
+
+[node name="Sep2" type="HSeparator" parent="UI/ActionPanel/TradingPanel"]
+
+[node name="MySatLabel" type="Label" parent="UI/ActionPanel/TradingPanel"]
 autowrap_mode = 3
+text = "Your satellite:"
+
+[node name="DeployPanel" type="VBoxContainer" parent="UI/ActionPanel"]
+offset_left = 10.0
+offset_top = 50.0
+offset_right = 310.0
+offset_bottom = 648.0
+visible = false
+
+[node name="DeployTitle" type="Label" parent="UI/ActionPanel/DeployPanel"]
+theme_override_font_sizes/font_size = 14
+text = "DEPLOYMENT"
+
+[node name="DeployInfo" type="Label" parent="UI/ActionPanel/DeployPanel"]
+autowrap_mode = 3
+text = "Click a moon to send\nyour satellite there."
+
+[node name="Sep1" type="HSeparator" parent="UI/ActionPanel/DeployPanel"]
+
+[node name="SatStatus" type="Label" parent="UI/ActionPanel/DeployPanel"]
+autowrap_mode = 3
+text = ""
+
+[node name="CombatPanel" type="VBoxContainer" parent="UI/ActionPanel"]
+offset_left = 10.0
+offset_top = 50.0
+offset_right = 310.0
+offset_bottom = 648.0
+visible = false
+
+[node name="CombatTitle" type="Label" parent="UI/ActionPanel/CombatPanel"]
+theme_override_font_sizes/font_size = 14
+text = "COMBAT RESULTS"
+
+[node name="Sep1" type="HSeparator" parent="UI/ActionPanel/CombatPanel"]
+
+[node name="CombatInfo" type="Label" parent="UI/ActionPanel/CombatPanel"]
+autowrap_mode = 3
+text = "No combat this turn."
+
+[node name="GameOverPanel" type="VBoxContainer" parent="UI/ActionPanel"]
+offset_left = 10.0
+offset_top = 50.0
+offset_right = 310.0
+offset_bottom = 648.0
+visible = false
+
+[node name="WinnerLabel" type="Label" parent="UI/ActionPanel/GameOverPanel"]
+horizontal_alignment = 1
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 22
+text = "Game Over"
+
+[node name="PlayAgainBtn" type="Button" parent="UI/ActionPanel/GameOverPanel"]
+text = "Back to Lobby"
+
+[node name="ReadyBtn" type="Button" parent="UI/ActionPanel"]
+offset_left = 10.0
+offset_top = 655.0
+offset_right = 310.0
+offset_bottom = 710.0
+theme_override_font_sizes/font_size = 17
+text = "Ready  →"
+
+[node name="StatusLabel" type="Label" parent="UI"]
+offset_left = 10.0
+offset_top = 668.0
+offset_right = 950.0
+offset_bottom = 715.0
+autowrap_mode = 3
+text = ""
