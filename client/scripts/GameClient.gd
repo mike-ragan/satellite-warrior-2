@@ -19,6 +19,10 @@ func create_game(player_name: String) -> void:
 	_post("/games", {"player_name": player_name}, _on_session_response)
 
 
+func create_solo_game(player_name: String) -> void:
+	_post("/games/solo", {"player_name": player_name}, _on_session_response)
+
+
 func join_game(gid: String, player_name: String) -> void:
 	_post("/games/" + gid + "/join", {"player_name": player_name}, _on_session_response)
 

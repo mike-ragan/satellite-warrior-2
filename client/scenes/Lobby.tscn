@@ -27,7 +27,10 @@ text = "Your name:"
 placeholder_text = "Enter your name"
 
 [node name="CreateBtn" type="Button" parent="UI/VBox"]
-text = "Create New Game"
+text = "Create Multiplayer Game"
+
+[node name="SoloBtn" type="Button" parent="UI/VBox"]
+text = "Play vs Computer"
 
 [node name="GameIdLabel" type="Label" parent="UI/VBox"]
 visible = false

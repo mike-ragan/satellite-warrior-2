@@ -45,6 +45,19 @@ async def create_game(body: CreateRequest):
     return {"game_id": engine.game_id, "player_id": player_id, "session_token": token}
 
 
+@app.post("/games/solo")
+async def create_solo_game(body: CreateRequest):
+    player_id = str(uuid.uuid4())
+    token = str(uuid.uuid4())
+    engine = GameEngine()
+    engine.add_player(player_id, body.player_name)
+    engine.add_ai_player("Computer")
+    games[engine.game_id] = engine
+    sessions[token] = (engine.game_id, player_id)
+    connections[engine.game_id] = []
+    return {"game_id": engine.game_id, "player_id": player_id, "session_token": token}
+
+
 @app.get("/games/{game_id}")
 async def get_game(game_id: str):
     engine = games.get(game_id)

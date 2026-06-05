@@ -11,11 +11,11 @@ from .combat import run_battle
 
 
 class GamePhase(str, Enum):
-    WAITING = "waiting"
-    TRADING = "trading"
+    WAITING    = "waiting"
+    TRADING    = "trading"
     DEPLOYMENT = "deployment"
-    COMBAT = "combat"
-    GAME_OVER = "game_over"
+    COMBAT     = "combat"
+    GAME_OVER  = "game_over"
 
 
 @dataclass
@@ -23,6 +23,7 @@ class Player:
     player_id: str
     name: str
     cash: int = 500
+    is_ai: bool = False
     satellites: List[Satellite] = field(default_factory=list)
     ready: bool = False
 
@@ -34,6 +35,7 @@ class Player:
             "player_id": self.player_id,
             "name": self.name,
             "cash": self.cash,
+            "is_ai": self.is_ai,
             "satellites": [s.to_dict() for s in self.satellites],
             "ready": self.ready,
         }
@@ -73,6 +75,15 @@ class GameEngine:
             self._start()
         return True
 
+    def add_ai_player(self, name: str = "Computer") -> str:
+        ai_id = str(uuid.uuid4())
+        player = Player(player_id=ai_id, name=name, is_ai=True)
+        player.satellites.append(Satellite(owner_id=ai_id))
+        self.players[ai_id] = player
+        if len(self.players) == 2:
+            self._start()
+        return ai_id
+
     def _start(self) -> None:
         self.turn_number = 1
         self._begin_trading()
@@ -83,16 +94,20 @@ class GameEngine:
         self.phase = GamePhase.TRADING
         self.alien_offer = generate_offer()
         self.combat_log = []
+        self._ai_act()
 
     def _advance(self) -> None:
         if self.phase == GamePhase.TRADING:
             self.phase = GamePhase.DEPLOYMENT
+            self._ai_act()
 
         elif self.phase == GamePhase.DEPLOYMENT:
-            self._resolve_combat()          # sets phase to COMBAT
+            self._resolve_combat()
             self._collect_resources()
             if self._check_winner():
                 self.phase = GamePhase.GAME_OVER
+            else:
+                self._ai_act()  # AI marks ready for combat review
 
         elif self.phase == GamePhase.COMBAT:
             self.turn_number += 1
@@ -107,7 +122,7 @@ class GameEngine:
         if not player:
             return {"ok": False, "error": "Player not found"}
         if not self.alien_offer:
-            return {"ok": False, "error": "No alien offer available"}
+            return {"ok": False, "error": "No alien offer"}
 
         try:
             comp = ComponentType(component)
@@ -125,14 +140,13 @@ class GameEngine:
         sat = player.satellites[0]
         for _ in range(qty):
             if not sat.add_component(comp):
-                # Satellite is full — create a new head automatically if buying a HEAD
                 if comp == ComponentType.HEAD:
                     new_sat = Satellite(owner_id=player_id)
                     player.satellites.append(new_sat)
                     sat = new_sat
                 else:
                     player.cash += self.alien_offer.prices[comp] * (qty - _)
-                    return {"ok": False, "error": "Satellite is full — buy a HEAD first to expand"}
+                    return {"ok": False, "error": "Satellite full — buy a HEAD to expand"}
 
         return {"ok": True, "cash": player.cash}
 
@@ -160,6 +174,8 @@ class GameEngine:
         player = self.players.get(player_id)
         if not player:
             return {"ok": False, "error": "Player not found"}
+        if player.is_ai:
+            return {"ok": False, "error": "Cannot set ready for AI player"}
 
         player.ready = True
         if all(p.ready for p in self.players.values()):
@@ -168,6 +184,80 @@ class GameEngine:
             self._advance()
 
         return {"ok": True}
+
+    # --------------------------------------------------------- AI logic
+
+    def _ai_act(self) -> None:
+        for player in self.players.values():
+            if player.is_ai:
+                self._ai_take_turn(player)
+
+    def _ai_take_turn(self, ai: Player) -> None:
+        if self.phase == GamePhase.TRADING:
+            self._ai_trade(ai)
+            ai.ready = True
+
+        elif self.phase == GamePhase.DEPLOYMENT:
+            self._ai_deploy(ai)
+            ai.ready = True
+
+        elif self.phase == GamePhase.COMBAT:
+            ai.ready = True
+
+    def _ai_trade(self, ai: Player) -> None:
+        if not self.alien_offer or ai.cash < 50:
+            return
+        comp = self._ai_pick_component(ai)
+        if comp and comp in self.alien_offer.components:
+            cost = self.alien_offer.prices[comp]
+            if ai.cash >= cost:
+                self.buy(ai.player_id, comp.value, 1)
+
+    def _ai_pick_component(self, ai: Player) -> Optional[ComponentType]:
+        if not self.alien_offer:
+            return None
+        available = self.alien_offer.components
+        owned = [c for sat in ai.satellites for c in sat.components]
+
+        # Prioritise: mobility → offence → defence → anything
+        priority = [
+            ComponentType.TOROID,
+            ComponentType.PLASMA_GUN,
+            ComponentType.GRABBER,
+            ComponentType.MISSILE,
+            ComponentType.SHIELD,
+            ComponentType.ARMOR,
+            ComponentType.ECM,
+        ]
+        for comp in priority:
+            if comp in available and owned.count(comp) < 2:
+                return comp
+        return random.choice(available) if available else None
+
+    def _ai_deploy(self, ai: Player) -> None:
+        sat = next((s for s in ai.satellites if s.is_mobile()), None)
+        if not sat:
+            return
+        moon = self._ai_pick_moon(ai)
+        if moon:
+            sat.moon_id = moon.id
+
+    def _ai_pick_moon(self, ai: Player) -> Optional[Moon]:
+        # Prefer unclaimed moons with highest resources
+        unclaimed = [m for m in self.moons
+                     if not any(s.moon_id == m.id for p in self.players.values()
+                                for s in p.satellites)]
+        if unclaimed:
+            return max(unclaimed, key=lambda m: m.resource_amount)
+
+        # Contest opponent's most valuable moon
+        opponents = [p for p in self.players.values() if p.player_id != ai.player_id]
+        if opponents:
+            opp_moons = [m for m in self.moons
+                         if any(s.moon_id == m.id for s in opponents[0].satellites)]
+            if opp_moons:
+                return max(opp_moons, key=lambda m: m.resource_amount)
+        return None
 
     # --------------------------------------------------------- internal logic
 
@@ -186,15 +276,14 @@ class GameEngine:
                 result = run_battle(sats[0], sats[1])
                 self.combat_log.append({"moon_id": moon_id, **result})
 
-        # Remove destroyed satellites
         for player in self.players.values():
             player.satellites = [s for s in player.satellites if s.stability > 0]
 
     def _collect_resources(self) -> None:
         for moon in self.moons:
             occupants = [
-                player for player in self.players.values()
-                if any(s.moon_id == moon.id for s in player.satellites)
+                p for p in self.players.values()
+                if any(s.moon_id == moon.id for s in p.satellites)
             ]
             if len(occupants) == 1:
                 moon.controlled_by = occupants[0].player_id
@@ -204,8 +293,7 @@ class GameEngine:
         for player in self.players.values():
             if not player.satellites:
                 return True
-        player_ids = list(self.players.keys())
-        for pid in player_ids:
+        for pid in self.players:
             if all(m.controlled_by == pid for m in self.moons):
                 return True
         return False
@@ -213,7 +301,8 @@ class GameEngine:
     def get_winner_name(self) -> Optional[str]:
         for player in self.players.values():
             if not player.satellites:
-                other = next(p for p in self.players.values() if p.player_id != player.player_id)
+                other = next(p for p in self.players.values()
+                             if p.player_id != player.player_id)
                 return other.name
         for player in self.players.values():
             if all(m.controlled_by == player.player_id for m in self.moons):
