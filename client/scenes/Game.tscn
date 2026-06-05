@@ -162,6 +162,15 @@ text = "BUY"
 autowrap_mode = 3
 text = "YOUR SATELLITE:"
 
+[node name="InvSep" type="HSeparator" parent="UI/ActionPanel/TradingPanel"]
+
+[node name="InvTitle" type="Label" parent="UI/ActionPanel/TradingPanel"]
+theme_override_font_sizes/font_size = 11
+text = "INVENTORY"
+
+[node name="InvContainer" type="VBoxContainer" parent="UI/ActionPanel/TradingPanel"]
+size_flags_horizontal = 3
+
 [node name="DeployPanel" type="VBoxContainer" parent="UI/ActionPanel"]
 offset_left = 10.0
 offset_top = 44.0

@@ -38,11 +38,15 @@ func _ready() -> void:
 	mouse_exited.connect(_on_hover.bind(false))
 
 
-func setup(id: String, mname: String, resources: int, player_id: String) -> void:
+func setup(id: String, mname: String, comp_yield: String, yield_amt: int, player_id: String) -> void:
 	moon_id    = id
 	_player_id = player_id
 	name_lbl.text = mname.to_upper()
-	res_lbl.text  = str(resources)
+	var abbrevs := {
+		"plasma_gun": "PLS", "shield": "SHL", "armor": "ARM",
+		"missile": "MSL", "grabber": "GRB", "ecm": "ECM", "toroid": "TRD",
+	}
+	res_lbl.text = abbrevs.get(comp_yield, "???") + "\n+" + str(yield_amt)
 
 
 func set_deployable(val: bool) -> void:

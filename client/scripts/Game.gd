@@ -30,6 +30,7 @@ var _setup_done := false
 # Trading
 @onready var alien_label:   Label = $UI/ActionPanel/TradingPanel/AlienLabel
 @onready var my_sat_label:  Label = $UI/ActionPanel/TradingPanel/MySatLabel
+@onready var inv_container: VBoxContainer = $UI/ActionPanel/TradingPanel/InvContainer
 var _comp_rows:   Array = []
 var _comp_icons:  Array = []
 var _comp_names:  Array = []
@@ -40,7 +41,7 @@ var _comp_btns:   Array = []
 @onready var deploy_info: Label = $UI/ActionPanel/DeployPanel/DeployInfo
 @onready var sat_status:  Label = $UI/ActionPanel/DeployPanel/SatStatus
 
-# Combat
+# Combat phase panel
 @onready var combat_info: Label = $UI/ActionPanel/CombatPanel/CombatInfo
 
 # Game over
@@ -70,6 +71,8 @@ func _ready() -> void:
 	GameClient.error_received.connect(func(m: String) -> void:
 		status_label.text = m
 	)
+	# Switch to combat scene on first combat_state message (ONE_SHOT auto-disconnects)
+	GameClient.combat_updated.connect(_enter_combat, CONNECT_ONE_SHOT)
 
 	for i in 3:
 		var base := "UI/ActionPanel/TradingPanel/"
@@ -96,6 +99,10 @@ func _ready() -> void:
 		moon_node.moon_clicked.connect(_on_moon_clicked)
 
 
+func _enter_combat(_s: Dictionary) -> void:
+	get_tree().change_scene_to_file("res://scenes/Combat.tscn")
+
+
 func _on_state(state: Dictionary) -> void:
 	_state = state
 
@@ -111,7 +118,7 @@ func _setup_moons(state: Dictionary) -> void:
 		var mid: String = moon_data["id"]
 		var moon_node   = _moons.get(mid)
 		if moon_node:
-			moon_node.setup(mid, moon_data["name"], moon_data["resource_amount"], _my_id)
+			moon_node.setup(mid, moon_data["name"], moon_data.get("component_yield", ""), moon_data.get("yield_per_turn", 0), _my_id)
 
 
 func _refresh(state: Dictionary) -> void:
@@ -137,7 +144,7 @@ func _refresh(state: Dictionary) -> void:
 	deploy_panel.visible   = phase == "deployment"
 	combat_panel.visible   = phase == "combat"
 	gameover_panel.visible = phase == "game_over"
-	ready_btn.visible      = phase in ["trading", "deployment", "combat"]
+	ready_btn.visible      = phase in ["trading", "deployment"]
 
 	var can_deploy := phase == "deployment" and _has_deployable_sat(me)
 	for moon_node in _moons.values():
@@ -146,7 +153,7 @@ func _refresh(state: Dictionary) -> void:
 	match phase:
 		"trading":    _refresh_trading(state, me)
 		"deployment": _refresh_deploy(me)
-		"combat":     _refresh_combat(state)
+		"combat":     combat_info.text = "COMBAT IN PROGRESS..."
 		"game_over":  winner_label.text = "%s\nWINS!" % state.get("winner", "?").to_upper()
 
 
@@ -156,25 +163,62 @@ func _refresh_trading(state: Dictionary, me: Dictionary) -> void:
 		alien_label.text = "NO ALIEN THIS TURN"
 		for i in 3:
 			_comp_rows[i].visible = false
-		return
-
-	var atype: String = offer.get("alien_type", "?").to_upper()
-	alien_label.text = "%s DEALER" % atype
-
-	var comps:  Array      = offer.get("components", [])
-	var prices: Dictionary = offer.get("prices", {})
-
-	for i in 3:
-		if i < comps.size():
-			var comp: String = comps[i]
-			_comp_rows[i].visible   = true
-			_comp_icons[i].color    = COMP_COLORS.get(comp, Color.WHITE)
-			_comp_names[i].text     = comp.replace("_", " ").to_upper()
-			_comp_prices[i].text    = "$%d" % int(prices.get(comp, 0))
-		else:
-			_comp_rows[i].visible = false
+	else:
+		alien_label.text = "%s DEALER" % offer.get("alien_type", "?").to_upper()
+		var comps:  Array      = offer.get("components", [])
+		var prices: Dictionary = offer.get("prices", {})
+		for i in 3:
+			if i < comps.size():
+				var comp: String = comps[i]
+				_comp_rows[i].visible = true
+				_comp_icons[i].color  = COMP_COLORS.get(comp, Color.WHITE)
+				_comp_names[i].text   = comp.replace("_", " ").to_upper()
+				_comp_prices[i].text  = "$%d" % int(prices.get(comp, 0))
+			else:
+				_comp_rows[i].visible = false
 
 	my_sat_label.text = _sat_summary(me)
+	_refresh_inventory(me)
+
+
+func _refresh_inventory(me: Dictionary) -> void:
+	for child in inv_container.get_children():
+		child.queue_free()
+
+	var inv: Dictionary = me.get("inventory", {})
+	if inv.is_empty():
+		var empty_lbl := Label.new()
+		empty_lbl.text = "(EMPTY)"
+		empty_lbl.add_theme_font_size_override("font_size", 11)
+		inv_container.add_child(empty_lbl)
+		return
+
+	for comp in inv:
+		var qty: int = inv[comp]
+		var row := HBoxContainer.new()
+		row.custom_minimum_size = Vector2(0, 30)
+
+		var name_lbl := Label.new()
+		name_lbl.text = "%s x%d" % [comp.replace("_", " ").to_upper(), qty]
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.add_theme_font_size_override("font_size", 11)
+
+		var build_btn := Button.new()
+		build_btn.text = "BUILD"
+		build_btn.custom_minimum_size = Vector2(54, 0)
+		build_btn.add_theme_font_size_override("font_size", 11)
+		build_btn.pressed.connect(func(): _on_build(comp))
+
+		var sell_btn := Button.new()
+		sell_btn.text = "SELL"
+		sell_btn.custom_minimum_size = Vector2(46, 0)
+		sell_btn.add_theme_font_size_override("font_size", 11)
+		sell_btn.pressed.connect(func(): _on_sell(comp))
+
+		row.add_child(name_lbl)
+		row.add_child(build_btn)
+		row.add_child(sell_btn)
+		inv_container.add_child(row)
 
 
 func _refresh_deploy(me: Dictionary) -> void:
@@ -185,20 +229,6 @@ func _refresh_deploy(me: Dictionary) -> void:
 	sat_status.text = _sat_summary(me)
 
 
-func _refresh_combat(state: Dictionary) -> void:
-	var log: Array = state.get("combat_log", [])
-	if log.is_empty():
-		combat_info.text = "NO BATTLES THIS TURN."
-		return
-	var text := ""
-	for entry in log:
-		var winner_name := _name_of(entry.get("winner_id", ""), state).to_upper()
-		var moon_name   := _moon_name(entry.get("moon_id", ""), state).to_upper()
-		var rounds: Array = entry.get("rounds", [])
-		text += "%s\n  WINNER: %s  (%d ROUNDS)\n\n" % [moon_name, winner_name, rounds.size()]
-	combat_info.text = text.strip_edges()
-
-
 func _on_buy(index: int) -> void:
 	var offer: Variant = _state.get("alien_offer")
 	if not offer is Dictionary:
@@ -206,6 +236,14 @@ func _on_buy(index: int) -> void:
 	var comps: Array = offer.get("components", [])
 	if index < comps.size():
 		GameClient.send({"type": "buy", "component": comps[index], "qty": 1})
+
+
+func _on_build(comp: String) -> void:
+	GameClient.send({"type": "build", "component": comp})
+
+
+func _on_sell(comp: String) -> void:
+	GameClient.send({"type": "sell", "component": comp, "qty": 1})
 
 
 func _on_moon_clicked(moon_id: String) -> void:
@@ -235,11 +273,12 @@ func _has_deployable_sat(me: Dictionary) -> bool:
 func _sat_summary(me: Dictionary) -> String:
 	var lines := ""
 	for sat in me.get("satellites", []):
-		var loc: String = sat.get("moon_id") if sat.get("moon_id") else "RESERVE"
+		var loc: String  = sat.get("moon_id") if sat.get("moon_id") else "RESERVE"
 		var comps: Array = sat.get("components", [])
 		var hp: int      = sat.get("stability", 100)
 		lines += "[%s] %s  HP:%d\n%s\n\n" % [
-			sat.get("id", "?").substr(0, 4).to_upper(), loc.to_upper(), hp,
+			sat.get("id", "?").substr(0, 4).to_upper(),
+			loc.to_upper(), hp,
 			", ".join(PackedStringArray(comps)).to_upper()
 		]
 	return lines.strip_edges() if lines else "NO SATELLITES"

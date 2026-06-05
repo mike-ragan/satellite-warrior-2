@@ -1,6 +1,7 @@
 extends Node
 
 signal state_updated(state: Dictionary)
+signal combat_updated(state: Dictionary)
 signal error_received(message: String)
 signal connected
 
@@ -133,6 +134,8 @@ func _handle(msg: Dictionary) -> void:
 			emit_signal("state_updated", msg.get("state", {}))
 			if not is_connected("connected", Callable()):
 				emit_signal("connected")
+		"combat_state":
+			emit_signal("combat_updated", msg)
 		"error":
 			emit_signal("error_received", msg.get("message", "Unknown error"))
 
